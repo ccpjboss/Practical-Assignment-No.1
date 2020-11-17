@@ -1,5 +1,7 @@
 # Prerequisites
 *.d
+*ivo.c
+*.txt
 
 # Object files
 *.o
@@ -50,3 +52,10 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+ex1
+ex3
+problema3.c
+thread.c
+thread.h
+timespec.c
+timespec.h
