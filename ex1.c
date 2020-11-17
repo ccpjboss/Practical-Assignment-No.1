@@ -1,7 +1,15 @@
+#define _GNU_SOURCE
+
 #include "func.h"
+#include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <errno.h>
 #include <time.h>
+#include <sched.h>
+#include <pthread.h>
+#include <string.h>
+#include <sys/mman.h>
 
 /*
  * Função para calcular a diferença entre dois instantes temporais
@@ -22,18 +30,26 @@ struct timespec timeDiff(struct timespec end, struct timespec start) // return m
     return result;
 }
 
-/*
- *Função para converter em ms 
- */
-long double timespecInMs(struct timespec a) //return ms
-{
-    return (long double)(a.tv_sec * (long double)1E3 + a.tv_nsec / (long double)1E6);
-}
 
 int main(int argc, char **argv)
 {
     struct timespec start, end; //Variaveis para guardar o tempo
     long double times[3];       //Array para guardar os tempos de computação
+    cpu_set_t mask;
+
+    if (mlockall(MCL_CURRENT | MCL_FUTURE) == -1)
+    {
+        perror("main->mlockall");
+    }
+
+    //Faz com que o programa corra em apenas um core do CPU
+    CPU_ZERO(&mask);
+    CPU_SET(0, &mask);
+
+    if (sched_setaffinity(0, sizeof(cpu_set_t), &mask) == -1)
+    {
+        perror("main->sched_setaffinity");
+    }
 
     for (int i = 0; i < 3; i++)
     {
