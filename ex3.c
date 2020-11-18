@@ -49,6 +49,25 @@ struct timespec timeSum(struct timespec a, struct timespec b)
     return result;
 }
 
+/*
+ * Função para calcular a diferença entre dois instantes temporais
+ */
+struct timespec timeDiff(struct timespec end, struct timespec start) // return ms
+{
+    struct timespec result;
+    if ((end.tv_nsec - start.tv_nsec) < 0)
+    {
+        result.tv_sec = end.tv_sec - start.tv_sec - 1;
+        result.tv_nsec = 1E9 + end.tv_nsec - start.tv_nsec;
+    }
+    else
+    {
+        result.tv_sec = end.tv_sec - start.tv_sec;
+        result.tv_nsec = end.tv_nsec - start.tv_nsec;
+    }
+    return result;
+}
+
 bool timeMenor(struct timespec a, struct timespec b)
 {
     if (a.tv_sec < b.tv_sec)
@@ -60,6 +79,32 @@ bool timeMenor(struct timespec a, struct timespec b)
         if (a.tv_sec == b.tv_sec)
         {
             if (a.tv_nsec < b.tv_nsec)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else
+        {
+            return false;
+        }
+    }
+}
+
+bool timeMaior(struct timespec a, struct timespec b)
+{
+    if (a.tv_sec > b.tv_sec)
+    {
+        return true;
+    }
+    else
+    {
+        if (a.tv_sec == b.tv_sec)
+        {
+            if (a.tv_nsec > b.tv_nsec)
             {
                 return true;
             }
@@ -98,6 +143,7 @@ struct threadOut
     int expected;
     int done;
     int *deadline;
+    struct timespec lResponse;
 };
 
 void *performWorK(void *input)
@@ -105,7 +151,7 @@ void *performWorK(void *input)
     struct timespec next, cur;
     struct threadInput *in = (struct threadInput *)input;
     struct threadOut *output = (struct threadOut *)malloc(1 * sizeof(struct threadOut));
-
+    
     if (output == NULL)
     {
         perror("thread malloc");
@@ -117,7 +163,8 @@ void *performWorK(void *input)
      */
     output->expected = (int)((float)6 / ((float)timeToMs(in->period) / (float)1E3) + 0.5);
     output->deadline = (int *)malloc(output->expected * sizeof(int));
-
+    output->lResponse = timespecFormat(0,0);
+    
     if (output->deadline == NULL)
     {
         perror("malloc_thread");
@@ -131,7 +178,6 @@ void *performWorK(void *input)
     {
         if (clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next, NULL) != 0)
         {
-            printf("1\n");
             perror("nanosleep");
             pthread_exit(NULL);
         }
@@ -152,6 +198,11 @@ void *performWorK(void *input)
         if (clock_gettime(CLOCK_MONOTONIC, &cur) == -1)
         {
             perror("clock_gettime");
+        }
+
+        if (timeMaior(timeDiff(cur,next),output->lResponse))
+        {
+            output->lResponse = timeDiff(cur,next);
         }
 
         next = timeSum(next, in->period);
@@ -303,6 +354,8 @@ int main()
                     printf("not fullfilled\n");
                 }
             }
+            printf("Largest response time: %LF ms \n\n",timeToMs(output[i]->lResponse));
+
             free(output[i]->deadline);
             free(output[i]);
         }
