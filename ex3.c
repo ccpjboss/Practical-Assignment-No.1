@@ -13,7 +13,7 @@
 
 #include "func.h"
 
-#define GROUP_NO 1 
+#define GROUP_NO 6
 #define CLASS_NO 1
 
 /**
@@ -123,7 +123,7 @@ bool timeMaior(struct timespec a, struct timespec b)
 /*
  * Função para converter timespec em ms 
  */
-long double timeToMs(struct timespec a) //return ms
+long double timeToMs(struct timespec a)
 {
     return (long double)(a.tv_sec * (long double)1E3 + a.tv_nsec / (long double)1E6);
 }
@@ -141,9 +141,8 @@ struct threadInput
 struct threadOut
 {
     int expected;
-    int done;
-    int *deadline;
-    struct timespec lResponse;
+    struct timespec maxResponse;
+    struct timespec minResponse;
 };
 
 void *performWorK(void *input)
@@ -151,7 +150,8 @@ void *performWorK(void *input)
     struct timespec next, cur;
     struct threadInput *in = (struct threadInput *)input;
     struct threadOut *output = (struct threadOut *)malloc(1 * sizeof(struct threadOut));
-    
+    struct timespec start_time;
+
     if (output == NULL)
     {
         perror("thread malloc");
@@ -162,13 +162,8 @@ void *performWorK(void *input)
      * the computation time of the task
      */
     output->expected = (int)((float)6 / ((float)timeToMs(in->period) / (float)1E3) + 0.5);
-    output->deadline = (int *)malloc(output->expected * sizeof(int));
-    output->lResponse = timespecFormat(0,0);
-    
-    if (output->deadline == NULL)
-    {
-        perror("malloc_thread");
-    }
+    output->maxResponse = timespecFormat(0, 0);
+    output->minResponse = timespecFormat(10, 0); /* Tem de ser suficientemente grande para conseguir alterar */
 
     next = in->start;
 
@@ -180,6 +175,11 @@ void *performWorK(void *input)
         {
             perror("nanosleep");
             pthread_exit(NULL);
+        }
+
+        if (clock_gettime(CLOCK_MONOTONIC, &start_time) == -1)
+        {
+            perror("start_time");
         }
 
         if (in->function == 0)
@@ -200,26 +200,33 @@ void *performWorK(void *input)
             perror("clock_gettime");
         }
 
-        if (timeMaior(timeDiff(cur,next),output->lResponse))
+        if (timeMaior(timeDiff(cur, next), output->maxResponse))
         {
-            output->lResponse = timeDiff(cur,next);
+            output->maxResponse = timeDiff(cur, next);
         }
 
+        if (timeMenor(timeDiff(cur, next), output->minResponse))
+        {
+            output->minResponse = timeDiff(cur, next);
+        }
+
+        printf("f%d act: %0.2LFms\t st: %0.2LFms\t end: %0.2LFms\t ", in->function, timeToMs(timeDiff(next, in->start)), timeToMs(timeDiff(start_time, in->start)), timeToMs(timeDiff(cur, in->start)));
         next = timeSum(next, in->period);
+        printf("deadline: %0.2LFms ", timeToMs(timeDiff(next, in->start)));
+
         if (i < output->expected)
         {
             if (timeMenor(cur, next))
             {
-                output->deadline[i] = 1;
+                printf("\t fullfilled \n");
             }
             else
             {
-                output->deadline[i] = 0;
+                printf("\t not fullfilled\n");
             }
         }
         i++;
     }
-    output->done = i;
     pthread_exit((void *)output);
 }
 
@@ -335,30 +342,13 @@ int main()
         }
     }
 
-    /* Presents the computation times */
-    for (int i = 0; i<3; i++)
-    {
-        printf("f%d:\n",i+1);
-        if (output[i] != NULL)
-        {
-            printf("Execuções esperadas %d  Execuções: %d\n", output[i]->expected, output[i]->done);
-            for (int j = 0;j<output[i]->done || j<output[i]->expected;j++)
-            {
-                printf("N. %d: Periodo = %d ms ",j,periodos[i]/(int)1E6);
-                if (output[i]->deadline[j])
-                {
-                    printf("fulfilled\n");
-                }
-                else
-                {
-                    printf("not fullfilled\n");
-                }
-            }
-            printf("Largest response time: %LF ms \n\n",timeToMs(output[i]->lResponse));
+    printf("\n");
 
-            free(output[i]->deadline);
-            free(output[i]);
-        }
+    for (int i = 0; i < 3; i++)
+    {
+        printf("task: %d\t priority: %d\t periodo: %dms\t Largest response: %0.2LFms\t Jitter: %0.2LFms\n", i + 1, sched[i].sched_priority, periodos[i] / (int)1E6, timeToMs(output[i]->maxResponse),timeToMs(timeDiff(output[i]->maxResponse,output[i]->minResponse)));
+
+        free(output[i]);
     }
     exit(EXIT_SUCCESS);
 }
