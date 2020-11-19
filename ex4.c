@@ -16,6 +16,10 @@
 #define GROUP_NO 6
 #define CLASS_NO 1
 
+pthread_t thread[3];
+bool revert1 = false;
+bool revert2 = false;
+
 /**
  * Set a standard format time to timespec format
  * */
@@ -94,6 +98,11 @@ bool timeMenor(struct timespec a, struct timespec b)
     }
 }
 
+bool timeIgual(struct timespec a, struct timespec b)
+{
+    return (a.tv_sec == b.tv_sec && a.tv_nsec == b.tv_nsec);
+}
+
 bool timeMaior(struct timespec a, struct timespec b)
 {
     if (a.tv_sec > b.tv_sec)
@@ -135,6 +144,8 @@ struct threadInput
     struct timespec period;
     struct timespec start;
     struct timespec end;
+    struct timespec t1;
+    struct timespec t2;
 };
 
 //Struct with the output of the thread
@@ -147,10 +158,11 @@ struct threadOut
 
 void *performWorK(void *input)
 {
-    struct timespec next, cur;
+    struct timespec next, cur, change;
     struct threadInput *in = (struct threadInput *)input;
     struct threadOut *output = (struct threadOut *)malloc(1 * sizeof(struct threadOut));
     struct timespec start_time;
+    struct sched_param sched;
 
     if (output == NULL)
     {
@@ -225,6 +237,55 @@ void *performWorK(void *input)
                 printf("\t not fullfilled\n");
             }
         }
+
+        if (clock_gettime(CLOCK_MONOTONIC, &change) == -1)
+        {
+            perror("clock_gettime_change");
+        }
+
+        if (in->function == 0 && timeMenor(in->t1, timeDiff(change, in->start)) && revert1 == false)
+        {
+            /* Inverse */
+            printf("Changing priority\n");
+            revert1 = true;
+            memset(&sched, 0, sizeof(struct sched_param));
+            if ((sched.sched_priority = sched_get_priority_max(SCHED_FIFO)) == -1)
+            {
+                perror("sched_get_priority_max");
+            }
+
+            if (pthread_setschedprio(thread[2], sched.sched_priority) != 0)
+            {
+                perror("pthread_setschedparam");
+            }
+            sched.sched_priority -= 2;
+            if (pthread_setschedprio(thread[0],sched.sched_priority) != 0)
+            {
+                perror("pthread_setschedparam");
+            }
+        }
+
+        if (in->function == 2 && timeMenor(in->t2, timeDiff(change, in->start)) && revert2 == false)
+        {
+            printf("Reverting to original priorities\n");
+            revert2 = true;
+            /* Revert */
+            memset(&sched, 0, sizeof(struct sched_param));
+            if ((sched.sched_priority = sched_get_priority_max(SCHED_FIFO)) == -1)
+            {
+                perror("sched_get_priority_max");
+            }
+
+            if (pthread_setschedprio(thread[0],sched.sched_priority) != 0)
+            {
+                perror("pthread_setschedparam");
+            }
+            sched.sched_priority -= 2;
+            if (pthread_setschedprio(thread[2],sched.sched_priority) != 0)
+            {
+                perror("pthread_setschedparam");
+            }
+        }
         i++;
     }
     pthread_exit((void *)output);
@@ -238,7 +299,6 @@ int main()
     struct sched_param sched[3];
     struct threadInput input[3];
     struct threadOut *output[3];
-    pthread_t thread[3];
 
     int periodos[3] = {100000000, 200000000, 400000000};
 
@@ -308,7 +368,7 @@ int main()
 
         //Decrements the priority, thread 1 will get max priority
         sched[i].sched_priority -= i;
-        printf("Priority of thread %d: %d\tInverse: %d\n", i + 1, sched[i].sched_priority,sched[i].sched_priority-2*(1-i));
+        printf("Priority of thread %d: %d\tInverse: %d\n", i + 1, sched[i].sched_priority, sched[i].sched_priority - 2 * (1 - i));
 
         //Sets the priority of the thread
         if (pthread_attr_setschedparam(&(attr[i]), &(sched[i])) != 0)
@@ -320,6 +380,8 @@ int main()
         input[i].period = timespecFormat(0, periodos[i]);
         input[i].start = start;
         input[i].end = finish;
+        input[i].t1 = timespecFormat(1, 950000000);
+        input[i].t2 = timespecFormat(3, 950000000);
     }
 
     for (int i = 0; i < 3; i++)
@@ -348,7 +410,7 @@ int main()
 
     for (int i = 0; i < 3; i++)
     {
-        printf("task: %d\t priority: %d\t periodo: %dms\t Largest response: %0.2LFms\t Jitter: %0.2LFms\n", i + 1, sched[i].sched_priority, periodos[i] / (int)1E6, timeToMs(output[i]->maxResponse),timeToMs(timeDiff(output[i]->maxResponse,output[i]->minResponse)));
+        printf("task: %d\t priority: %d\t periodo: %dms\t Largest response: %0.2LFms\t Jitter: %0.2LFms\n", i + 1, sched[i].sched_priority, periodos[i] / (int)1E6, timeToMs(output[i]->maxResponse), timeToMs(timeDiff(output[i]->maxResponse, output[i]->minResponse)));
 
         free(output[i]);
     }
