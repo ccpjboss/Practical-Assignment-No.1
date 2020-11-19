@@ -29,7 +29,13 @@ struct timespec timeDiff(struct timespec end, struct timespec start) // return m
     }
     return result;
 }
-
+/*
+ * Função para converter timespec em ms 
+ */
+long double timeToMs(struct timespec a)
+{
+    return (long double)(a.tv_sec * (long double)1E3 + a.tv_nsec / (long double)1E6);
+}
 
 int main(int argc, char **argv)
 {
