@@ -18,7 +18,7 @@
 
 /**
  * Set a standard format time to timespec format
- * */
+ **/
 struct timespec timespecFormat(int seconds, int nanoseconds)
 {
     struct timespec result;
@@ -52,7 +52,7 @@ struct timespec timeSum(struct timespec a, struct timespec b)
 /*
  * Função para calcular a diferença entre dois instantes temporais
  */
-struct timespec timeDiff(struct timespec end, struct timespec start) // return ms
+struct timespec timeDiff(struct timespec end, struct timespec start)
 {
     struct timespec result;
     if ((end.tv_nsec - start.tv_nsec) < 0)
@@ -68,6 +68,11 @@ struct timespec timeDiff(struct timespec end, struct timespec start) // return m
     return result;
 }
 
+/**
+ * Função para saber se a é menor que b
+ * 
+ * Returns true se for menor e false se maior
+ */
 bool timeMenor(struct timespec a, struct timespec b)
 {
     if (a.tv_sec < b.tv_sec)
@@ -94,6 +99,11 @@ bool timeMenor(struct timespec a, struct timespec b)
     }
 }
 
+/**
+ * Função para saber se a é maior que b
+ * 
+ * Returns true se for maior e false se menor
+ */
 bool timeMaior(struct timespec a, struct timespec b)
 {
     if (a.tv_sec > b.tv_sec)
@@ -121,30 +131,34 @@ bool timeMaior(struct timespec a, struct timespec b)
 }
 
 /*
- * Função para converter timespec em ms 
+ * Função para converter timespec em ms, maioritariamente para prints
  */
 long double timeToMs(struct timespec a)
 {
     return (long double)(a.tv_sec * (long double)1E3 + a.tv_nsec / (long double)1E6);
 }
 
-//Struct with the input of the thread function call
+/* Struct with the input of the thread function call */
 struct threadInput
 {
-    int function;
-    struct timespec period;
-    struct timespec start;
-    struct timespec end;
+    int function;           /* Task que a thread tem de fazer */
+    struct timespec period; /* Periodo da task */
+    struct timespec start;  /* Tempo em que começam as tasks, todas começam ao mesmo tempo */
+    struct timespec end;    /* Tempo em que todas as tasks têm de terminar */
 };
 
-//Struct with the output of the thread
+/* Struct with the output of the thread */
 struct threadOut
 {
-    int expected;
+    int expected; /* Numero de vezes que a task é esperada de correr */
     struct timespec maxResponse;
     struct timespec minResponse;
 };
 
+/**
+ * Função que é chamada para as threads.
+ * void *input -> Struct threadInput que vai "dizer" o que a thread tem de fazer.
+ */
 void *performWorK(void *input)
 {
     struct timespec next, cur;
@@ -165,19 +179,20 @@ void *performWorK(void *input)
     output->maxResponse = timespecFormat(0, 0);
     output->minResponse = timespecFormat(10, 0); /* Tem de ser suficientemente grande para conseguir alterar */
 
-    next = in->start;
+    next = in->start; /* O proximo tempo de ativação, no inicio, vai ser igual ao começo */
 
     int i = 0;
 
     while (timeMenor(next, in->end))
     {
+        /* A thread tem de esperar até ao proximo tempo de ativação */
         if (clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next, NULL) != 0)
         {
             perror("nanosleep");
             pthread_exit(NULL);
         }
 
-        if (clock_gettime(CLOCK_MONOTONIC, &start_time) == -1)
+        if (clock_gettime(CLOCK_MONOTONIC, &start_time) == -1) /* Tempo em que a task começou */
         {
             perror("start_time");
         }
@@ -195,11 +210,12 @@ void *performWorK(void *input)
             f3(CLASS_NO, GROUP_NO);
         }
 
-        if (clock_gettime(CLOCK_MONOTONIC, &cur) == -1)
+        if (clock_gettime(CLOCK_MONOTONIC, &cur) == -1) /* Tempo em que a task acabou */
         {
             perror("clock_gettime");
         }
 
+        /* Condições para saber os tempos de resposta maximos e minimos */
         if (timeMaior(timeDiff(cur, next), output->maxResponse))
         {
             output->maxResponse = timeDiff(cur, next);
@@ -211,6 +227,8 @@ void *performWorK(void *input)
         }
 
         printf("f%d act: %0.2LFms\t st: %0.2LFms\t end: %0.2LFms\t ", in->function, timeToMs(timeDiff(next, in->start)), timeToMs(timeDiff(start_time, in->start)), timeToMs(timeDiff(cur, in->start)));
+
+        /* Atualiza o tempo next para saber o proximo tempo de ativação, que também é a deadline */
         next = timeSum(next, in->period);
         printf("deadline: %0.2LFms ", timeToMs(timeDiff(next, in->start)));
 
@@ -227,7 +245,7 @@ void *performWorK(void *input)
         }
         i++;
     }
-    pthread_exit((void *)output);
+    pthread_exit((void *)output); /* Exit thread e retorna a struct threadOut */
 }
 
 int main()
@@ -240,41 +258,41 @@ int main()
     struct threadOut *output[3];
     pthread_t thread[3];
 
-    int periodos[3] = {100000000, 200000000, 400000000};
+    int periodos[3] = {100000000, 200000000, 400000000}; /* Periodos de ativação das tasks */
 
-    //Prevents the memory from being paged to the swap area
+    /*Prevents the memory from being paged to the swap area*/
     if (mlockall(MCL_CURRENT | MCL_FUTURE) == -1)
     {
         perror("mklockall");
     }
 
-    CPU_ZERO(&mask);   //Clears cpu set, so that it contains no CPU's
-    CPU_SET(0, &mask); //Add a cpu to the set, the 0 represents the cpu 0
+    CPU_ZERO(&mask);   /* Clears cpu set, so that it contains no CPU's */
+    CPU_SET(0, &mask); /* Add a cpu to the set, the 0 represents the cpu 0 */
 
-    //Set a thread's cpu affinity mask, use 0 in the first argument for calling thread
+    /* Set a thread's cpu affinity mask, use 0 in the first argument for calling thread */
     if (sched_setaffinity(0, sizeof(cpu_set_t), &mask))
     {
         perror("sched_affinity");
     }
 
-    //Setting the start time and finish time
-    if (clock_gettime(CLOCK_MONOTONIC, &start) == -1) //Gets the universal start time
+    /* Setting the start time and finish time */
+    if (clock_gettime(CLOCK_MONOTONIC, &start) == -1) /* Gets the universal start time */
     {
         perror("clock_gettime(start)");
     }
 
-    start = timeSum(start, timespecFormat((int)2, 0)); //Adds 3 seconds to the start time to make sure that all the thread are created
-    finish = timeSum(start, timespecFormat((int)6, 0));
+    start = timeSum(start, timespecFormat((int)2, 0)); /* Adds 3 seconds to the start time to make sure that all the thread are created */
+    finish = timeSum(start, timespecFormat((int)6, 0)); /* Finish time é o tempo de execução */
 
     for (int i = 0; i < 3; i++)
     {
-        //Initiates the atributes of the thread
+        /* Initiates the atributes of the thread */
         if (pthread_attr_init(&(attr[i])) != 0)
         {
             perror("pthread_attr_init");
         }
 
-        //Sets the thread affinity to the cpu_set_t making it run in core 0, in this case
+        /* Sets the thread affinity to the cpu_set_t making it run in core 0, in this case */
         if (pthread_attr_setaffinity_np(&(attr[i]), sizeof(cpu_set_t), &mask) != 0)
         {
             perror("pthread_setaffinity_np");
@@ -297,7 +315,7 @@ int main()
             perror("phread_attr_setschedpolicy");
         }
 
-        //Gets the maximum priority for the policy in use
+        /* Gets the maximum priority for the policy in use */
         memset(&(sched[i]), 0, sizeof(struct sched_param));
         if ((sched[i].sched_priority = sched_get_priority_max(SCHED_FIFO)) == -1)
         {
@@ -314,12 +332,14 @@ int main()
             perror("pthread_attr_setschedparam");
         }
 
+        /* Sets the threadInput struct */
         input[i].function = i;
         input[i].period = timespecFormat(0, periodos[i]);
         input[i].start = start;
         input[i].end = finish;
     }
 
+    /* Creates the threads with the attr and links the performWork function */
     for (int i = 0; i < 3; i++)
     {
         if (pthread_create(&(thread[i]), &(attr[i]), performWorK, &(input[i])) != 0)
@@ -346,7 +366,7 @@ int main()
 
     for (int i = 0; i < 3; i++)
     {
-        printf("task: %d\t priority: %d\t periodo: %dms\t Largest response: %0.2LFms\t Jitter: %0.2LFms\n", i + 1, sched[i].sched_priority, periodos[i] / (int)1E6, timeToMs(output[i]->maxResponse),timeToMs(timeDiff(output[i]->maxResponse,output[i]->minResponse)));
+        printf("task: %d\t priority: %d\t periodo: %dms\t Largest response: %0.2LFms\t Jitter: %0.2LFms\n", i + 1, sched[i].sched_priority, periodos[i] / (int)1E6, timeToMs(output[i]->maxResponse), timeToMs(timeDiff(output[i]->maxResponse, output[i]->minResponse)));
 
         free(output[i]);
     }

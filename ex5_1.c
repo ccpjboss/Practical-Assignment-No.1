@@ -1,3 +1,6 @@
+/**
+ * Este exercicio é o mesmo que o exercicio 1 mas com a func2.c
+ */
 #define _GNU_SOURCE
 
 #include "func2.h"

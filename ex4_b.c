@@ -1,4 +1,6 @@
-
+/**
+ * Este exercicio é igual ao ex4 mas a restrição de usar apenas 1 core
+ */
 #define _GNU_SOURCE
 
 #include <stdlib.h>
@@ -310,15 +312,6 @@ int main()
     {
         perror("mklockall");
     }
-
-    //CPU_ZERO(&mask);   //Clears cpu set, so that it contains no CPU's
-    //CPU_SET(0, &mask); //Add a cpu to the set, the 0 represents the cpu 0
-
-    //Set a thread's cpu affinity mask, use 0 in the first argument for calling thread
-    //if (sched_setaffinity(0, sizeof(cpu_set_t), &mask))
-    //{
-     //   perror("sched_affinity");
-    //}
 
     //Setting the start time and finish time
     if (clock_gettime(CLOCK_MONOTONIC, &start) == -1) //Gets the universal start time

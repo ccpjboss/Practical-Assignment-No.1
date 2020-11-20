@@ -1,3 +1,6 @@
+/**
+ * Este exercicio é o mesmo que o ex3 mas com func2.c
+ */
 #define _GNU_SOURCE
 
 #include <stdlib.h>
@@ -284,7 +287,7 @@ int main()
             perror("phread_attr_setschedpolicy");
         }
 
-        //Gets the maximum priority for the policy in use
+        //Gets the maximum priority
         memset(&(sched[i]), 0, sizeof(struct sched_param));
         if ((sched[i].sched_priority = sched_get_priority_max(SCHED_FIFO)) == -1)
         {
