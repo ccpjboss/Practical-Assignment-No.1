@@ -290,7 +290,7 @@ int main()
 
         /**
          * Sets the scheduling policy attribute of the thread attributes refered by attr
-         * to the value SCHED_FIFO
+         * to the value SCHED_RR
          */
         if (pthread_attr_setschedpolicy(&(attr[i]), SCHED_RR) != 0)
         {
