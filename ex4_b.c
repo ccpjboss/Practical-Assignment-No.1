@@ -1,4 +1,6 @@
-
+/**
+ * Este exercicio é igual ao ex4 mas a restrição de usar apenas 1 core
+ */
 #define _GNU_SOURCE
 
 #include <stdlib.h>

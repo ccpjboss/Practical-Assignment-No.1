@@ -12,6 +12,7 @@ struct timespec timespecFormat(int seconds, int nanoseconds)
     return result;
 }
 
+/* Para simular as tasks de func.h usamos a system call nanosleep que "adormece" a thread por x ns */
 void f1(int a, int b)
 {
     struct timespec time;
