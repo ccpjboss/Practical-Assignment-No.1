@@ -299,6 +299,8 @@ int main()
 
         //Gets the maximum priority
         memset(&(sched[i]), 0, sizeof(struct sched_param));
+
+        /* Aqui ao contrario dos outros programas não diminuimos a prioridade pois todas tem a mesma prioridade */
         if ((sched[i].sched_priority = sched_get_priority_max(SCHED_RR)) == -1)
         {
             perror("main->sched_get_priority_max");
@@ -345,7 +347,7 @@ int main()
 
     for (int i = 0; i < 3; i++)
     {
-        printf("task: %d\t priority: %d\t periodo: %dms\t Largest response: %0.2LFms\t Jitter: %0.2LFms\n", i + 1, sched[i].sched_priority, periodos[i] / (int)1E6, timeToMs(output[i]->maxResponse),timeToMs(timeDiff(output[i]->maxResponse,output[i]->minResponse)));
+        printf("task: %d\t priority: %d\t periodo: %dms\t Largest response: %0.2LFms\t Jitter: %0.2LFms\n", i + 1, sched[i].sched_priority, periodos[i] / (int)1E6, timeToMs(output[i]->maxResponse), timeToMs(timeDiff(output[i]->maxResponse, output[i]->minResponse)));
 
         free(output[i]);
     }

@@ -42,8 +42,6 @@ struct timespec timeSum(struct timespec a, struct timespec b)
 /*
  * Função para calcular a diferença entre dois instantes temporais
  */
-
-
 bool timeMaior(struct timespec a, struct timespec b)
 {
     if (a.tv_sec > b.tv_sec)

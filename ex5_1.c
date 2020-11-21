@@ -19,10 +19,6 @@
 #define CLASS_NO 1 
 
 /*
- * Função para calcular a diferença entre dois instantes temporais
- */
-
-/*
  * Função para converter timespec em ms 
  */
 long double timeToMs(struct timespec a)
@@ -32,8 +28,8 @@ long double timeToMs(struct timespec a)
 
 int main(int argc, char **argv)
 {
-    struct timespec start, end; //Variaveis para guardar o tempo
-    long double times[3];       //Array para guardar os tempos de computação
+    struct timespec start, end; /* Variaveis para guardar o tempo */
+    long double times[3];       /* Array para guardar os tempos de computação */
     cpu_set_t mask;
 
     if (mlockall(MCL_CURRENT | MCL_FUTURE) == -1)
@@ -41,7 +37,7 @@ int main(int argc, char **argv)
         perror("main->mlockall");
     }
 
-    //Faz com que o programa corra em apenas um core do CPU
+    /* Faz com que o programa corra em apenas um core do CPU */
     CPU_ZERO(&mask);
     CPU_SET(0, &mask);
 
