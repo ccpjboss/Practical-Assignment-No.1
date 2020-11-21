@@ -330,12 +330,6 @@ int main()
             perror("pthread_attr_init");
         }
 
-        //Sets the thread affinity to the cpu_set_t making it run in core 0, in this case
-        if (pthread_attr_setaffinity_np(&(attr[i]), sizeof(cpu_set_t), &mask) != 0)
-        {
-            perror("pthread_setaffinity_np");
-        }
-
         /**
          * Takes their scheduling attribut from the values specified by the attr object 
          */
