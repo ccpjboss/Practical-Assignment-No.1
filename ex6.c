@@ -240,7 +240,7 @@ int main()
     struct threadOut *output[3];
     pthread_t thread[3];
 
-    int periodos[3] = {100000000, 200000000, 400000000};
+    int periodos[3] = {100000000, 200000000, 300000000};
 
     //Prevents the memory from being paged to the swap area
     if (mlockall(MCL_CURRENT | MCL_FUTURE) == -1)

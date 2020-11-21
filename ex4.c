@@ -321,7 +321,7 @@ int main()
     struct threadInput input[3];
     struct threadOut *output[3];
 
-    int periodos[3] = {100000000, 200000000, 400000000}; /* Periodos de ativação das tasks */
+    int periodos[3] = {100000000, 200000000, 300000000}; /* Periodos de ativação das tasks */
 
     printf("RMPO and Inverse\nThis program will change priorities at t=1.95s and t=3.95s\n");
 
